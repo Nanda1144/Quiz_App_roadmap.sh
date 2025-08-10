@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JSON Quiz App</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f7f7f7;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+    }
+    .quiz-container {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        width: 100%;
+        max-width: 500px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .start-screen, .result-screen, .question-card {
+        text-align: center;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 8px 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: 0.3s;
+    }
+    button:hover {
+        opacity: 0.85;
+    }
+    .btn-option {
+        display: block;
+        width: 100%;
+        margin: 8px 0;
+        background: #eee;
+    }
+    .btn-option.correct {
+        background-color: #4CAF50 !important;
+        color: white;
+    }
+    .btn-option.wrong {
+        background-color: #F44336 !important;
+        color: white;
+    }
+    .timer {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .score {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+</style>
+</head>
+<body>
+
+<div class="quiz-container">
+
+    <!-- Start Screen -->
+    <div class="start-screen" id="start-screen">
+        <h2>Welcome to the Quiz!</h2>
+        <p>Test your knowledge. Each question has a 1-minute timer.  
+           If time runs out, you lose 1 point.</p>
+        <button onclick="startQuiz()">Start Quiz</button>
+    </div>
+
+    <!-- Question Screen -->
+    <div class="question-card" id="question-card" style="display:none;">
+        <div class="timer" id="timer">Time left: 60s</div>
+        <div class="score" id="score-display">Score: 0</div>
+        <h3 id="question-text"></h3>
+        <div id="options"></div>
+        <div id="correct-answer" style="margin-top:10px; display:none;"></div>
+    </div>
+
+    <!-- Result Screen -->
+    <div class="result-screen" id="result-screen" style="display:none;">
+        <h2>Quiz Completed!</h2>
+        <p id="final-score"></p>
+        <h3>Results:</h3>
+        <ul id="results-list"></ul>
+        <button onclick="restartQuiz()">Restart Quiz</button>
+    </div>
+
+</div>
+
+<script>
+    const questions = [
+        { question: "What is the capital of France?", options: ["Berlin", "Madrid", "Paris", "Lisbon"], answer: "Paris" },
+        { question: "Which language is used for web development?", options: ["Python", "Java", "C++", "JavaScript"], answer: "JavaScript" },
+        { question: "Who developed the theory of relativity?", options: ["Newton", "Einstein", "Galileo", "Tesla"], answer: "Einstein" }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 60;
+    let results = [];
+
+    const startScreen = document.getElementById("start-screen");
+    const questionCard = document.getElementById("question-card");
+    const resultScreen = document.getElementById("result-screen");
+    const questionText = document.getElementById("question-text");
+    const optionsContainer = document.getElementById("options");
+    const timerDisplay = document.getElementById("timer");
+    const scoreDisplay = document.getElementById("score-display");
+    const correctAnswerDiv = document.getElementById("correct-answer");
+    const finalScore = document.getElementById("final-score");
+    const resultsList = document.getElementById("results-list");
+
+    function startQuiz() {
+        score = 0;
+        currentIndex = 0;
+        results = [];
+        startScreen.style.display = "none";
+        resultScreen.style.display = "none";
+        questionCard.style.display = "block";
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        clearInterval(timer);
+        timeLeft = 60;
+        timerDisplay.textContent = `Time left: ${timeLeft}s`;
+        scoreDisplay.textContent = `Score: ${score}`;
+        correctAnswerDiv.style.display = "none";
+
+        const currentQ = questions[currentIndex];
+        questionText.textContent = currentQ.question;
+        optionsContainer.innerHTML = "";
+
+        currentQ.options.forEach(option => {
+            const btn = document.createElement("button");
+            btn.textContent = option;
+            btn.classList.add("btn-option");
+            btn.onclick = () => selectAnswer(btn, option);
+            optionsContainer.appendChild(btn);
+        });
+
+        timer = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = `Time left: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                results.push({ question: currentQ.question, userAnswer: null, correct: false });
+                score--;
+                setTimeout(nextQuestion, 500);
+            }
+        }, 1000);
+    }
+
+    function selectAnswer(button, option) {
+        clearInterval(timer);
+
+        const currentQ = questions[currentIndex];
+        const buttons = optionsContainer.querySelectorAll("button");
+        buttons.forEach(btn => btn.disabled = true);
+
+        if (option === currentQ.answer) {
+            button.classList.add("correct");
+            score++;
+            results.push({ question: currentQ.question, userAnswer: option, correct: true });
+        } else {
+            button.classList.add("wrong");
+            results.push({ question: currentQ.question, userAnswer: option, correct: false });
+            buttons.forEach(btn => {
+                if (btn.textContent === currentQ.answer) btn.classList.add("correct");
+            });
+        }
+
+        scoreDisplay.textContent = `Score: ${score}`;
+        correctAnswerDiv.style.display = "block";
+        correctAnswerDiv.textContent = `Correct Answer: ${currentQ.answer}`;
+
+        setTimeout(nextQuestion, 1000);
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < questions.length) {
+            loadQuestion();
+        } else {
+            endQuiz();
+        }
+    }
+
+    function endQuiz() {
+        questionCard.style.display = "none";
+        resultScreen.style.display = "block";
+        finalScore.textContent = `Your Final Score: ${score}`;
+        resultsList.innerHTML = "";
+        results.forEach(r => {
+            const li = document.createElement("li");
+            li.textContent = `${r.question} — Your answer: ${r.userAnswer || "No attempt"} (${r.correct ? "Correct" : "Incorrect"})`;
+            resultsList.appendChild(li);
+        });
+    }
+
+    function restartQuiz() {
+        startScreen.style.display = "block";
+        resultScreen.style.display = "none";
+    }
+</script>
+</body>
+  </html>
+  
